@@ -233,16 +233,15 @@ function App() {
             </div>
 
             {/* 📞 MAKE CALL */}
-            <MakeCallButton
-                username={auth.username}
-                password={auth.password}
-                accountSid={auth.accountSid}
-                subDomain={auth.subDomain} // ✅ dynamic subdomain here
-                myNumber={myNumber}
-                customerNumber={customerNumber}
-                callerId={callerId}
-                onActionComplete={refreshHistory}
-            />
+          <MakeCallButton
+                   username={auth.username}
+                  password={auth.password}
+                 fromNumber={myNumber}        // ✅ matches backend
+                  toNumber={customerNumber}    // ✅ matches backend
+                  callerId={callerId}          // ✅ matches backend
+                     onCallComplete={() => console.log("call complete")} 
+                     />
+
 
             <hr style={{ margin: "20px 0" }} />
 
