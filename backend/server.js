@@ -1,0 +1,137 @@
+const express = require("express");
+const axios = require("axios");
+const cors = require("cors");
+
+const app = express();
+app.use(cors());
+app.use(express.json()); // Parses JSON from client
+app.use(cors());
+app.use(express.urlencoded({ extended: true })); // Required for TwiML endpoint
+
+// ------------------------------
+// 1️⃣ MAKE CALL
+// ------------------------------
+ // 1️⃣ MAKE CALL (SECURE PROXY to Exotel)
+// ------------------------------
+app.post("/api/make-call", async (req, res) => {
+    // ⚠️ CRITICAL: All parameters, including credentials, are read from req.body
+    const { 
+        username, 
+        password, 
+        accountSid, 
+        subDomain, 
+        From, 
+        To, 
+        CallerId, 
+        Url 
+    } = req.body; 
+
+    if (!username || !password || !accountSid || !subDomain) {
+        return res.status(401).json({ error: "Authentication failed. Missing credentials or account info." });
+    }
+    if (!From || !To || !CallerId || !Url) {
+        return res.status(400).json({ error: "Missing mandatory call parameters (From, To, CallerId, Url)." });
+    }
+
+    try {
+        // Construct the Exotel API URL dynamically
+        const exotelUrl = `https://${subDomain}/v1/Accounts/${accountSid}/Calls/connect`;
+
+        // Exotel requires data to be sent as 'application/x-www-form-urlencoded'
+        const formData = new URLSearchParams();
+        formData.append("From", From);
+        formData.append("To", To);
+        formData.append("CallerId", CallerId);
+        formData.append("Url", Url); // MANDATORY TwiML URL
+
+        const response = await axios.post(exotelUrl, formData, {
+            // Send credentials using Basic Authentication
+            auth: { username, password }, 
+            headers: {
+                "Content-Type": "application/x-www-form-urlencoded",
+            },
+        });
+
+        res.json(response.data);
+    } catch (err) {
+        console.error("Exotel response error:", err.response?.data || err.message);
+        res.status(err.response?.status || 500).json({
+            error: "Exotel API error",
+            details: err.response?.data || err.message,
+        });
+    }
+});
+
+
+// ------------------------------
+// 2️⃣ GET CALL HISTORY
+// ------------------------------
+app.get("/api/call-history", async (req, res) => {
+    const { username, password, accountSid, subDomain, startDate, endDate } = req.query;
+
+    if (!username || !password || !accountSid || !subDomain) {
+        return res.status(400).json({ error: "Missing credentials, AccountSid or SubDomain" });
+    }
+
+    try {
+        let url = `https://${subDomain}/v1/Accounts/${accountSid}/Calls.json`;
+        if (startDate && endDate) {
+            url += `?StartTime=${startDate}&EndTime=${endDate}`;
+        }
+
+        const response = await axios.get(url, {
+            auth: { username, password },
+        });
+
+        res.json(response.data);
+    } catch (err) {
+        console.error(err.response?.data || err.message);
+        res.status(500).json({ error: "Exotel API error" });
+    }
+});
+
+// ------------------------------
+// 3️⃣ GET CALL DETAILS
+// ------------------------------
+app.get("/api/call-details/:sid", async (req, res) => {
+    const { username, password, accountSid, subDomain } = req.query;
+    const callSid = req.params.sid;
+
+    if (!username || !password || !accountSid || !subDomain) {
+        return res.status(400).json({ error: "Missing credentials, AccountSid or SubDomain" });
+    }
+
+    try {
+        const url = `https://${subDomain}/v1/Accounts/${accountSid}/Calls/${callSid}.json`;
+        const response = await axios.get(url, {
+            auth: { username, password },
+        });
+
+        res.json(response.data);
+    } catch (err) {
+        console.error(err.response?.data || err.message);
+        res.status(500).json({ error: "Exotel API error" });
+    }
+});
+
+// ------------------------------
+// 4️⃣ CONNECT.XML (TwiML)
+// ------------------------------
+//4️⃣// CONNECT.XML (TwiML Endpoint - Called by Exotel)
+// ------------------------------
+app.post("/connect.xml", (req, res) => {
+    // Exotel sends 'To' (customer number) in the URL-encoded body
+    const { To } = req.body; 
+
+    const xmlResponse = `
+        <Response>
+            <Say voice="alice">Connecting your call now.</Say>
+            <Dial>${To}</Dial>
+        </Response>
+    `.trim();
+
+    res.header("Content-Type", "application/xml");
+    res.send(xmlResponse);
+});
+
+app.listen(5000, () => console.log("Server running on http://localhost:5000"));
