@@ -13,55 +13,40 @@ app.use(express.urlencoded({ extended: true })); // Required for TwiML endpoint
 // ------------------------------
  // 1️⃣ MAKE CALL (SECURE PROXY to Exotel)
 // ------------------------------
+ // ------------------------------
+//  Trigger Exotel Call
+// ------------------------------
 app.post("/api/make-call", async (req, res) => {
-    // ⚠️ CRITICAL: All parameters, including credentials, are read from req.body
-    const { 
-        username, 
-        password, 
-        accountSid, 
-        subDomain, 
-        From, 
-        To, 
-        CallerId, 
-        Url 
-    } = req.body; 
+  const { username, password, fromNumber, toNumber, callerId } = req.body;
 
-    if (!username || !password || !accountSid || !subDomain) {
-        return res.status(401).json({ error: "Authentication failed. Missing credentials or account info." });
-    }
-    if (!From || !To || !CallerId || !Url) {
-        return res.status(400).json({ error: "Missing mandatory call parameters (From, To, CallerId, Url)." });
-    }
+  if (!username || !password || !fromNumber || !toNumber || !callerId) {
+    return res.status(400).json({ error: "All fields are required" });
+  }
 
-    try {
-        // Construct the Exotel API URL dynamically
-        const exotelUrl = `https://${subDomain}/v1/Accounts/${accountSid}/Calls/connect`;
+  try {
+    const formData = new URLSearchParams();
+    formData.append("From", fromNumber);
+    formData.append("To", toNumber);
+    formData.append("callerId", callerId);
+    formData.append("record", "true");
 
-        // Exotel requires data to be sent as 'application/x-www-form-urlencoded'
-        const formData = new URLSearchParams();
-        formData.append("From", From);
-        formData.append("To", To);
-        formData.append("CallerId", CallerId);
-        formData.append("Url", Url); // MANDATORY TwiML URL
+    const response = await axios.post(
+      "https://api.exotel.com/v1/Accounts/calibrecueitsolutions1/Calls/connect",
+      formData,
+      {
+        auth: { username, password },
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      }
+    );
 
-        const response = await axios.post(exotelUrl, formData, {
-            // Send credentials using Basic Authentication
-            auth: { username, password }, 
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded",
-            },
-        });
-
-        res.json(response.data);
-    } catch (err) {
-        console.error("Exotel response error:", err.response?.data || err.message);
-        res.status(err.response?.status || 500).json({
-            error: "Exotel API error",
-            details: err.response?.data || err.message,
-        });
-    }
+    res.json(response.data);
+  } catch (error) {
+    console.error("Backend error:", error.response?.data || error.message);
+    res
+      .status(error.response?.status || 500)
+      .json(error.response?.data || { error: error.message });
+  }
 });
-
 
 // ------------------------------
 // 2️⃣ GET CALL HISTORY

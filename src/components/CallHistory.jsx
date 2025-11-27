@@ -7,6 +7,9 @@ const CallHistory = ({ username, password, accountSid, subDomain, refreshKey, da
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Utility function for delay
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
   // Fetch calls from backend
   const fetchCalls = async () => {
     if (!username || !password || !accountSid || !subDomain) {
@@ -38,20 +41,22 @@ const CallHistory = ({ username, password, accountSid, subDomain, refreshKey, da
 
       const callsArray = Array.isArray(callList) ? callList : [callList];
 
-      // Fetch recording URL for each call
-      const enrichedCalls = await Promise.all(
-        callsArray.map(async (call) => {
-          try {
-            const recRes = await axios.get(`http://localhost:5000/api/call-details/${call.Sid}`, {
-              params: { username, password, accountSid, subDomain }
-            });
-            const recording = recRes.data?.ExotelResponse?.Call?.Recording?.Url || null;
-            return { ...call, recordingUrl: recording };
-          } catch {
-            return { ...call, recordingUrl: null };
-          }
-        })
-      );
+      // Sequentially fetch recording URL for each call to avoid 429
+      const enrichedCalls = [];
+      for (const call of callsArray) {
+        try {
+          const recRes = await axios.get(`http://localhost:5000/api/call-details/${call.Sid}`, {
+            params: { username, password, accountSid, subDomain }
+          });
+          const recording = recRes.data?.ExotelResponse?.Call?.Recording?.Url || null;
+          enrichedCalls.push({ ...call, recordingUrl: recording });
+        } catch {
+          enrichedCalls.push({ ...call, recordingUrl: null });
+        }
+
+        // Add delay between requests (adjust as needed)
+        await sleep(500);
+      }
 
       // Sort by date descending
       enrichedCalls.sort((a, b) => new Date(b.DateCreated) - new Date(a.DateCreated));
