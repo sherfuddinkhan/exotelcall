@@ -7,7 +7,7 @@ const CallRecordingPlayer = ({ callSid, username, password, accountSid, subDomai
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (!callSid || !username || !password || !accountSid || !subDomain) return;
+    if (!callSid || !username || !password) return;
 
     const fetchDetails = async () => {
       setLoading(true);
@@ -23,7 +23,7 @@ const CallRecordingPlayer = ({ callSid, username, password, accountSid, subDomai
         setRecordUrl(details.RecordingUrl || "");
       } catch (err) {
         console.error("Failed to fetch recording details:", err);
-        setError("Could not load recording URL. Check call status or credentials.");
+        setError("Could not load recording URL.");
       } finally {
         setLoading(false);
       }
@@ -35,8 +35,10 @@ const CallRecordingPlayer = ({ callSid, username, password, accountSid, subDomai
   return (
     <div style={{ padding: 15, border: '1px solid #ddd', borderRadius: 4, marginTop: 15 }}>
       <h3>🎧 Recording Player</h3>
+
       {loading && <p>Loading recording details...</p>}
       {error && <p style={{ color: 'red' }}>{error}</p>}
+
       {!loading && !error && (
         recordUrl ? (
           <audio controls src={recordUrl} style={{ width: "100%" }} />

@@ -233,14 +233,16 @@ function App() {
             </div>
 
             {/* 📞 MAKE CALL */}
-          <MakeCallButton
-                   username={auth.username}
-                  password={auth.password}
-                 fromNumber={myNumber}        // ✅ matches backend
-                  toNumber={customerNumber}    // ✅ matches backend
-                  callerId={callerId}          // ✅ matches backend
-                     onCallComplete={() => console.log("call complete")} 
-                     />
+         <MakeCallButton
+  username={auth.username}
+  password={auth.password}
+  fromNumber={myNumber}
+  toNumber={customerNumber}
+  callerId={callerId}
+  record={true}     // ✅ Correct
+  onCallComplete={() => console.log("call complete")}
+/>
+
 
 
             <hr style={{ margin: "20px 0" }} />

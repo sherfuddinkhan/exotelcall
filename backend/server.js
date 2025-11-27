@@ -17,7 +17,7 @@ app.use(express.urlencoded({ extended: true })); // Required for TwiML endpoint
 //  Trigger Exotel Call
 // ------------------------------
 app.post("/api/make-call", async (req, res) => {
-  const { username, password, fromNumber, toNumber, callerId } = req.body;
+  const { username, password, fromNumber, toNumber, callerId, Record } = req.body;
 
   if (!username || !password || !fromNumber || !toNumber || !callerId) {
     return res.status(400).json({ error: "All fields are required" });
@@ -27,8 +27,8 @@ app.post("/api/make-call", async (req, res) => {
     const formData = new URLSearchParams();
     formData.append("From", fromNumber);
     formData.append("To", toNumber);
-    formData.append("callerId", callerId);
-    formData.append("record", "true");
+    formData.append("CallerId", callerId);
+    formData.append("Record", Record ? "true" : "false"); // ⭐ FIX HERE
 
     const response = await axios.post(
       "https://api.exotel.com/v1/Accounts/calibrecueitsolutions1/Calls/connect",
@@ -42,11 +42,13 @@ app.post("/api/make-call", async (req, res) => {
     res.json(response.data);
   } catch (error) {
     console.error("Backend error:", error.response?.data || error.message);
-    res
-      .status(error.response?.status || 500)
-      .json(error.response?.data || { error: error.message });
+    res.status(error.response?.status || 500)
+       .json(error.response?.data || { error: error.message });
   }
 });
+
+
+
 
 // ------------------------------
 // 2️⃣ GET CALL HISTORY
