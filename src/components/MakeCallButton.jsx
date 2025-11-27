@@ -4,18 +4,24 @@ import axios from "axios";
 const MakeCallButton = ({
   username,
   password,
-  accountSid,
-  subDomain,
   fromNumber,
   toNumber,
   callerId,
+  record,
   onCallComplete
 }) => {
   const [loading, setLoading] = useState(false);
 
   const makeCall = async () => {
-    if (!username || !password ||  !fromNumber || !toNumber || !callerId) {
-      alert("All fields required (username, password, accountSid, subDomain, fromNumber, toNumber, callerId)");
+    // Validate required fields (record should not be in this group)
+    if (!username || !password || !fromNumber || !toNumber || !callerId) {
+      alert("All fields required (username, password, fromNumber, toNumber, callerId)");
+      return;
+    }
+
+    // record can be true or false — only undefined is an error
+    if (record === undefined) {
+      alert("Record flag missing (use record={true} or record={false})");
       return;
     }
 
@@ -25,11 +31,10 @@ const MakeCallButton = ({
       const response = await axios.post("http://localhost:5000/api/make-call", {
         username,
         password,
-        //accountSid,
-        //subDomain,
         fromNumber,
         toNumber,
         callerId,
+        Record: record ? 1 : 0, // Send correct flag to backend
       });
 
       console.log("Call initiated:", response.data);
